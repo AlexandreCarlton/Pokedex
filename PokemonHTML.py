@@ -15,7 +15,7 @@ class Pokemon(object):
         self.num = num
         self.pokemondb_soup = BeautifulSoup(urlopen('http://pokemondb.net/pokedex/%d' % self.num))
         print 'Loaded PokemonDB'
-###        self.name = self.pokemondb_soup.find('div', attrs={'class' : 'navbar'}).h1.string
+        self.name = self.pokemondb_soup.find('div', attrs={'class' : 'navbar'}).h1.string
         
 
     ##############
@@ -92,7 +92,7 @@ class Pokemon(object):
         all_abilities = self.basic_data()[5]
         abilities = (( a.string for a in all_abilities.td.findAll('a')[:-1] ))
         hidden = all_abilities.td.small.a.string
-        return tuple( (( tuple(abilities), hidden )) )
+        return tuple(( tuple(abilities), hidden ))
     
     
     #################
@@ -101,7 +101,22 @@ class Pokemon(object):
     #               #
     #################
 
+    def breeding_data(self):
+        '''Helper function to grab the breeding table'''
+        return self.pokemondb_soup.findAll('table', attrs={'class':'vitals'})[1].tbody.findAll('tr')
 
+    def egg_group(self):
+        '''Returns a tuple containing the egg groups of the pokemon'''
+        return tuple(( group.string for group in self.breeding_data()[0].findAll('a') ))
+    
+    def gender_ratio(self):
+        '''Returns the percentage chance of breeding a male pokemon'''
+        return float(self.breeding_data()[1].td.span.string.split()[0][:-1])/100
+
+    def egg_cycles(self):
+        '''Returns the number of egg cycles needed to hatch a Pokemon
+        1 egg cycle = 255 steps'''
+        return int(self.breeding_data()[2].td.contents[0].strip())
 
     ######################
     #                    #
@@ -118,18 +133,22 @@ class Pokemon(object):
 
 
 if __name__ == '__main__':
-    p = Pokemon(149)
+    p = Pokemon(1)
     print p.name
     bs = p.base_stats()
     print bs
-###    dex = p.dex_entry()
-###    for k, v in dex.iteritems():
-###        print repr(k), ':', repr(v)
+    dex = p.dex_entry()
+    for k, v in dex.iteritems():
+        print repr(k), ':', repr(v)
 
-###    print repr(p.species())
-###    print repr(p.types())
-###    print p.abilities()
-###    print repr(p.height())
-###    print repr(p.weight())
+    print repr(p.species())
+    print repr(p.types())
+    print p.abilities()
+    print repr(p.height())
+    print repr(p.weight())
 
-###    print p.pokeathlon_stats()
+    print p.pokeathlon_stats()
+
+    print p.egg_group()
+    print p.gender_ratio()
+    print p.egg_cycles()
