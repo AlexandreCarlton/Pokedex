@@ -17,6 +17,13 @@ class Pokemon(object):
         self.name = self.pokemondb_soup.find('div', attrs={'class' : 'navbar'}).h1.string
 
         self.bulbapedia_soup = BeautifulSoup(urlopen('http://bulbapedia.bulbagarden.net/wiki/%s_(Pokemon)' % self.name))
+    
+    ##############
+    #            #
+    # STATISTICS #
+    #            #
+    ##############
+
 
     def base_stats(self):
         '''Returns a dictionary of the base stats of a pokemon
@@ -32,14 +39,29 @@ class Pokemon(object):
             bs['Special'] = int(self.bulbapedia_soup.find(text=' base stat in ').parent.b.string)
         
         return bs
-        
-    def dex_entry(self):
-        '''Returns a dictionary containing the Pokedex entries of each game of the Pokemon'''
-        #Grab the table with dex entries, which has class flavors
-        dex_table = self.pokemondb_soup.find('table', attrs={'class':'flavors'}).tbody.findAll('tr')
-        #For every row in the dex_table, and hen for every game in that row, set the game to the row entry.
-        return { game: row.td.string for row in dex_table for game in row.th.getText(' ').split() }
+    
+    def pokeathlon_stats(self):
+        #Grab table with vitals wide class, and grab rows in it
+        stats = {}
+        star = '&#x2605;'
+        stat_table = self.pokemondb_soup.find('table', attrs={'class':'vitals wide'}).tbody.findAll('tr')
+        for row in stat_table:
+            min_stat = (row.td.findAll('span', attrs={'class':'pkthln-stars min'})[0].string or "").count(star)
+            base_stat = min_stat + (row.td.findAll('span', attrs={'class':'pkthln-stars base'})[0].string or "").count(star)
+            max_stat = base_stat + (row.td.findAll('span', attrs={'class':'pkthln-stars max'})[0].string or "").count(star)
+            stats[row.th.string] = (min_stat, base_stat, max_stat)
+        return stats
+    
 
+
+
+
+
+    ##############
+    #            #
+    # BASIC DATA #
+    #            #
+    ##############
 
     def basic_data(self):
         '''Helper function to return the table \'Pokedex Data\''''
@@ -52,13 +74,11 @@ class Pokemon(object):
         return tuple(map(int, re.split('&#8242;|&#8243;', self.basic_data()[3].td.string)[:2]))
 
     def weight(self):
-        return self.basic_data()[4].td.string
-
+        return float(self.basic_data()[4].td.string.split()[0])
 
     def types(self):
         '''Returns a tuple of types of the Pokemon'''
         return tuple(( t.string for t in self.basic_data()[1].td.findAll('a') ))
-
 
     def species(self):
         '''Returns the species of the Pokemon'''
@@ -74,6 +94,19 @@ class Pokemon(object):
         return tuple( (( tuple(abilities), hidden )) )
     
     
+    ######################
+    #                    #
+    # GAME-SPECIFIC DATA #
+    #                    #
+    ######################
+
+    def dex_entry(self):
+        '''Returns a dictionary containing the Pokedex entries of each game of the Pokemon'''
+        #Grab the table with dex entries, which has class flavors
+        dex_table = self.pokemondb_soup.find('table', attrs={'class':'flavors'}).tbody.findAll('tr')
+        #For every row in the dex_table, and hen for every game in that row, set the game to the row entry.
+        return { game: row.td.string for row in dex_table for game in row.th.getText(' ').split() }
+
 
 if __name__ == '__main__':
     p = Pokemon(1)
@@ -89,3 +122,5 @@ if __name__ == '__main__':
     print p.abilities()
     print repr(p.height())
     print repr(p.weight())
+
+    print p.pokeathlon_stats()
