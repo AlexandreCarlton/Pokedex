@@ -14,10 +14,10 @@ class Pokemon(object):
     def __init__(self, num):
         self.num = num
         self.pokemondb_soup = BeautifulSoup(urlopen('http://pokemondb.net/pokedex/%d' % self.num))
-        self.name = self.pokemondb_soup.find('div', attrs={'class' : 'navbar'}).h1.string
+        print 'Loaded PokemonDB'
+###        self.name = self.pokemondb_soup.find('div', attrs={'class' : 'navbar'}).h1.string
+        
 
-        self.bulbapedia_soup = BeautifulSoup(urlopen('http://bulbapedia.bulbagarden.net/wiki/%s_(Pokemon)' % self.name))
-    
     ##############
     #            #
     # STATISTICS #
@@ -35,27 +35,28 @@ class Pokemon(object):
         
         #if the pokemon was part of Gen I, then it has a special stat too.
         if self.num <= 151:
-            #Find text with ' base stat in ', and then grab the bold sibling.
-            bs['Special'] = int(self.bulbapedia_soup.find(text=' base stat in ').parent.b.string)
-        
+            #Load psypokes especially for this, 
+            psypokes_soup = BeautifulSoup(urlopen('http://www.psypokes.com/dex/psydex/%03d/stats' % self.num))
+            print 'Loaded Psypokes'
+            bs[u'Special'] = int(psypokes_soup.findAll('td', attrs={'class':'bigheaderstyle'})[4].nextSibling.nextSibling.string)  
+
         return bs
     
     def pokeathlon_stats(self):
-        #Grab table with vitals wide class, and grab rows in it
+        '''Returns a dictionary of the pokeathlon stats of the pokemon
+        Each item in the tuple (the value of the dictionary) represents the min, base, and max stats, respectively.'''
         stats = {}
-        star = '&#x2605;'
+        star = '&#x2605;' #Unicode character for the star (used on the site)
+        #Grab table with vitals wide class, and grab rows in it
         stat_table = self.pokemondb_soup.find('table', attrs={'class':'vitals wide'}).tbody.findAll('tr')
         for row in stat_table:
+            #Count the stars in each tag, but the tag is empty then we replace it with the empty string so as not to break the program
             min_stat = (row.td.findAll('span', attrs={'class':'pkthln-stars min'})[0].string or "").count(star)
             base_stat = min_stat + (row.td.findAll('span', attrs={'class':'pkthln-stars base'})[0].string or "").count(star)
             max_stat = base_stat + (row.td.findAll('span', attrs={'class':'pkthln-stars max'})[0].string or "").count(star)
             stats[row.th.string] = (min_stat, base_stat, max_stat)
         return stats
     
-
-
-
-
 
     ##############
     #            #
@@ -94,6 +95,14 @@ class Pokemon(object):
         return tuple( (( tuple(abilities), hidden )) )
     
     
+    #################
+    #               #
+    # BREEDING DATA #
+    #               #
+    #################
+
+
+
     ######################
     #                    #
     # GAME-SPECIFIC DATA #
@@ -109,18 +118,18 @@ class Pokemon(object):
 
 
 if __name__ == '__main__':
-    p = Pokemon(1)
+    p = Pokemon(149)
     print p.name
     bs = p.base_stats()
     print bs
-    dex = p.dex_entry()
-    for k, v in dex.iteritems():
-        print repr(k), ':', repr(v)
+###    dex = p.dex_entry()
+###    for k, v in dex.iteritems():
+###        print repr(k), ':', repr(v)
 
-    print repr(p.species())
-    print repr(p.types())
-    print p.abilities()
-    print repr(p.height())
-    print repr(p.weight())
+###    print repr(p.species())
+###    print repr(p.types())
+###    print p.abilities()
+###    print repr(p.height())
+###    print repr(p.weight())
 
-    print p.pokeathlon_stats()
+###    print p.pokeathlon_stats()
