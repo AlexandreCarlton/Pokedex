@@ -109,8 +109,6 @@ class Pokemon(object):
         abilities = [ a.string for a in all_abilities.findAll('a') ]
         #If we found a hidden ability then we should exclude it from the main abilities
         if found_hidden: abilities = abilities[:-1]
-        #If there is no second ability, then we set it to None
-        if len(abilities) == 1: abilities = abilities + [None]
 
         return tuple(( tuple(abilities), hidden ))
 
@@ -134,6 +132,41 @@ class Pokemon(object):
         Uses Psypokes'''
         return self._psypokes_text('Habitat') if self.num <= 386 else None
     
+    def body_style(self):
+        '''Returns the body style of the Pokemon'''
+        #FIXME: Giratina has two body styles- one for each form
+        #Return a dictionary where form is key, and value is the body style
+        
+        #Is the Pokemon Giratina? (only pokemon where body style differes with form)
+        if self.num == 487:
+            #Yes, it's cheap and dirty, but Psypokes made an error about this too
+            return {'Origin' : 'Serpentine', 'Altered' : 'Multiped'} 
+        
+
+        #Each key is the number given by each bodystyle to Psypokes
+        body_styles = {0 : 'Quadrupedal',
+                       1 : 'Bipedal tailless',
+                       2 : 'Bipedal tailed',
+                       3 : 'Serpentine',
+                       4 : 'Multiple winged', #2 or more pairs of wings
+                       5 : 'Single winged', #Only one pair of wings
+                       6 : 'Insectoid',
+                       7 : 'Head with base',
+                       8 : 'Head with arms',
+                       9 : 'Head with legs',
+                       10: 'Multiped', #Tentacled
+                       11: 'Finned',
+                       12: 'Head',
+                       13: 'Multiple bodied'}
+        
+        #Grab the image tag that has the body style
+        img = self.psypokes_soup.find('img', attrs={'style':'padding-left: 20px;', 'width':'32', 'height':'32'})
+        #Split the url, grab the last item ('x.png'), split it again via the dot, and grab the first item
+        body_key =int(img['src'].split('/')[-1].split('.')[0])
+        return body_styles[body_key]
+
+
+
     #################
     #               #
     # BREEDING DATA #
@@ -212,7 +245,7 @@ class Pokemon(object):
 if __name__ == '__main__':
 
     #We could always just stuff this in a __str__ method
-    p = Pokemon(450)
+    p = Pokemon(151)
     print p.name
     bs = p.base_stats()
     print 'Base stats:', p.base_stats()
@@ -230,11 +263,12 @@ if __name__ == '__main__':
     print 'Colour:', p.colour()
     if p.habitat():
         print 'Habitat:', p.habitat()
-    print 'Abilities:', ', '.join((a for a in p.abilities()[0] if a is not None))
+    print 'Abilities:', ', '.join((a for a in p.abilities()[0] ))
     if p.abilities()[1]:
         print 'Hidden ability:', p.abilities()[1]
     print 'Height: %d\'%d"' % (p.height()[0], p.height()[1])
     print 'Weight: %.1f kg' % p.weight()
+    print 'Body style:', p.body_style()
     print
     
     print 'Egg group(s):', ', '.join(p.egg_group())
@@ -248,3 +282,4 @@ if __name__ == '__main__':
     print 'Base happiness:', p.base_happiness()
     print 'Base exp:', p.base_exp()
     print 'Growth rate:', p.growth_rate()
+
