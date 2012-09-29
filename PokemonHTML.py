@@ -9,14 +9,29 @@ pokemon_str = u'Pok\xe9mon'
 
 class Pokemon(object):
     '''Grabs information about the Pokemon from various databases.'''
-        
+    #FIXME: Account for different forms (see Bulbapedia for full list)
+    #Luckily PokemonDB accounts for this
     
+    #If a pokemon has form differences, then maybe return a dictionary where key is form, and value is the difference
+        #e.g. key is origin, value is stats for origin
+    #Differences include:
+        #Abilities
+        #Stats
+        #Types
+        #Body Type (ugh)
+        #Height/Weight
+        #Moves
+    #Does not affect:
+        #Color (just takes the color of its most common form; e.g. Kyurem is grey
+
     def __init__(self, num):
         self.num = num
         self.pokemondb_soup = BeautifulSoup(urlopen('http://pokemondb.net/pokedex/%d' % self.num))
         print 'Loaded PokemonDB'
         self.name = self.pokemondb_soup.find('div', attrs={'class' : 'navbar'}).h1.string
         
+        self.psypokes_soup = BeautifulSoup(urlopen('http://psypokes.com/dex/psydex/%03d' % self.num))
+        print 'Loaded Psydex'
 
     ##############
     #            #
@@ -36,9 +51,9 @@ class Pokemon(object):
         #if the pokemon was part of Gen I, then it has a special stat too.
         if self.num <= 151:
             #Load psypokes especially for this, 
-            psypokes_soup = BeautifulSoup(urlopen('http://www.psypokes.com/dex/psydex/%03d/stats' % self.num))
-            print 'Loaded Psypokes'
-            bs[u'Special'] = int(psypokes_soup.findAll('td', attrs={'class':'bigheaderstyle'})[4].nextSibling.nextSibling.string)  
+            psypokes_stat_soup = BeautifulSoup(urlopen('http://www.psypokes.com/dex/psydex/%03d/stats' % self.num))
+            print 'Loaded Psypokes Stats'
+            bs[u'Special'] = int(psypokes_stat_soup.findAll('td', attrs={'class':'bigheaderstyle'})[4].nextSibling.nextSibling.string)  
 
         return bs
     
@@ -64,7 +79,7 @@ class Pokemon(object):
     #            #
     ##############
 
-    def basic_data(self):
+    def _basic_data(self):
         '''Helper function to return the table \'Pokedex Data\''''
         return self.pokemondb_soup.find('table', attrs={'class':'vitals'}).tbody.findAll('tr')
 
@@ -72,28 +87,52 @@ class Pokemon(object):
         '''Returns a tuple containing the height in feet and inches'''
         #HTML symbols are ', and " respectively; HTMLParser().unescape didn't work.
         #Could just replace both symbols and split via that
-        return tuple(map(int, re.split('&#8242;|&#8243;', self.basic_data()[3].td.string)[:2]))
+        return tuple(map(int, re.split('&#8242;|&#8243;', self._basic_data()[3].td.string)[:2]))
 
     def weight(self):
-        return float(self.basic_data()[4].td.string.split()[0])
+        return float(self._basic_data()[4].td.string.split()[0])
 
     def types(self):
         '''Returns a tuple of types of the Pokemon'''
-        return tuple(( t.string for t in self.basic_data()[1].td.findAll('a') ))
-
-    def species(self):
-        '''Returns the species of the Pokemon'''
-        #global pokemon_str
-        return self.basic_data()[2].td.string #[:len(pokemon_str)]
+        return tuple(( t.string for t in self._basic_data()[1].td.findAll('a') ))
 
     def abilities(self):
         '''Returns a tuple of abilities the Pokemon has:
             ( (Ability1, Ability2), HAbility)'''
-        all_abilities = self.basic_data()[5]
-        abilities = (( a.string for a in all_abilities.td.findAll('a')[:-1] ))
-        hidden = all_abilities.td.small.a.string
+        all_abilities = self._basic_data()[5]
+
+        #found_hidden will contain either an empty list or an abilitiy enclosed within an <a/> tag
+        found_hidden = all_abilities.find('small')
+        hidden = found_hidden.a.string if found_hidden else None
+
+        #Contains all abilities (including hidden if one exists)
+        abilities = [ a.string for a in all_abilities.findAll('a') ]
+        #If we found a hidden ability then we should exclude it from the main abilities
+        if found_hidden: abilities = abilities[:-1]
+        #If there is no second ability, then we set it to None
+        if len(abilities) == 1: abilities = abilities + [None]
+
         return tuple(( tuple(abilities), hidden ))
-    
+
+    def _psypokes_text(self, info):
+        '''Helper function to find information from psypokes page'''
+        return self.psypokes_soup.find(text=info+':').parent.nextSibling.nextSibling.string
+
+    def species(self):
+        '''Returns the species of the Pokemon
+        Uses Psypokes'''
+        #return self._basic_data()[2].td.string #[:len(pokemon_str)]
+        return self._psypokes_text('Species')
+
+    def colour(self):
+        '''Returns colour of the Pokemon
+        Uses Psypokes'''
+        return self._psypokes_text('Colour')
+
+    def habitat(self):
+        '''Returns the habitat of the Pokemon as dictated in FireRed/LeafGreen (Gen IV, V pokemon don't have this)
+        Uses Psypokes'''
+        return self._psypokes_text('Habitat') if self.num <= 386 else None
     
     #################
     #               #
@@ -101,22 +140,57 @@ class Pokemon(object):
     #               #
     #################
 
-    def breeding_data(self):
+    def _breeding_data(self):
         '''Helper function to grab the breeding table'''
         return self.pokemondb_soup.findAll('table', attrs={'class':'vitals'})[1].tbody.findAll('tr')
 
     def egg_group(self):
         '''Returns a tuple containing the egg groups of the pokemon'''
-        return tuple(( group.string for group in self.breeding_data()[0].findAll('a') ))
+        return tuple(( group.string for group in self._breeding_data()[0].findAll('a') ))
     
     def gender_ratio(self):
-        '''Returns the percentage chance of breeding a male pokemon'''
-        return float(self.breeding_data()[1].td.span.string.split()[0][:-1])/100
-
+        '''Returns tuple the percentage chance of being male/female, (0,0) if pokemon is genderless'''
+        #Grab second row of breeding_data, get span, then in each string split it and grab the percentage with [0] (omitting male/female), and remove the % symbol with [:-1]
+        if self._breeding_data()[1].td.string == 'Genderless':
+            return (0,0) #Could return 'Genderless'
+        return tuple(( float(row.string.split()[0][:-1]) for row in self._breeding_data()[1].td.findAll('span') ))
+        
     def egg_cycles(self):
         '''Returns the number of egg cycles needed to hatch a Pokemon
         1 egg cycle = 255 steps'''
-        return int(self.breeding_data()[2].td.contents[0].strip())
+        return int(self._breeding_data()[2].td.contents[0].strip())
+
+
+    #################
+    #               #
+    # TRAINING DATA #
+    #               #
+    #################
+
+    def _training_data(self):
+        '''Helper function that gives table of relevant information for training data'''
+        return self.pokemondb_soup.findAll('table', attrs={'class':'vitals'})[2].tbody.findAll('tr')
+
+    def EV_yield(self):
+        '''Returns a dictionary where each key is a stat with the value by which it increases the stat'''
+        return { EV.split(' ', 1)[1] : int(EV.split(' ', 1)[0]) for EV in self._training_data()[0].td.string.split(', ') }
+
+    def catch_rate(self):
+        '''Returns the catch rate of the Pokemon (used when determining whether a pokeball thrown will catch it)'''
+        return int(self._training_data()[1].td.contents[0])
+    
+    def base_happiness(self):
+        '''Returns the base happiness of a Pokemon when it is caught'''
+        return int(self._training_data()[2].td.contents[0])
+
+    def base_exp(self):
+        '''Returns the base exp of a Pokemon'''
+        return int(self._training_data()[3].td.string)
+
+    def growth_rate(self):
+        '''Returns the growth rate of a pokemon- how much exp it will need to get to Lv. 100'''
+        return self._training_data()[4].td.string
+
 
     ######################
     #                    #
@@ -131,24 +205,46 @@ class Pokemon(object):
         #For every row in the dex_table, and hen for every game in that row, set the game to the row entry.
         return { game: row.td.string for row in dex_table for game in row.th.getText(' ').split() }
 
+    
+    #TODO
+    #Movesets- dictionary for each game/generation?
 
 if __name__ == '__main__':
-    p = Pokemon(1)
+
+    #We could always just stuff this in a __str__ method
+    p = Pokemon(450)
     print p.name
     bs = p.base_stats()
-    print bs
+    print 'Base stats:', p.base_stats()
+    print 'Pokeathlon stats:', p.pokeathlon_stats()
+    print 
+    
     dex = p.dex_entry()
+    print 'Dex entry:'
     for k, v in dex.iteritems():
-        print repr(k), ':', repr(v)
+        print k, ':', repr(v)
+    print 
+    
+    print 'Species:', p.species()
+    print 'Type:', ', '.join(p.types())
+    print 'Colour:', p.colour()
+    if p.habitat():
+        print 'Habitat:', p.habitat()
+    print 'Abilities:', ', '.join((a for a in p.abilities()[0] if a is not None))
+    if p.abilities()[1]:
+        print 'Hidden ability:', p.abilities()[1]
+    print 'Height: %d\'%d"' % (p.height()[0], p.height()[1])
+    print 'Weight: %.1f kg' % p.weight()
+    print
+    
+    print 'Egg group(s):', ', '.join(p.egg_group())
 
-    print repr(p.species())
-    print repr(p.types())
-    print p.abilities()
-    print repr(p.height())
-    print repr(p.weight())
+    print 'Gender ratio: %.1f%% Male, %.1f%% Female' % (p.gender_ratio()[0], p.gender_ratio()[1])
+    print 'Egg cycles:', p.egg_cycles(), '(%d steps)' % (p.egg_cycles()*255)
+    print
 
-    print p.pokeathlon_stats()
-
-    print p.egg_group()
-    print p.gender_ratio()
-    print p.egg_cycles()
+    print 'EV Yield:', p.EV_yield()
+    print 'Catch rate:', p.catch_rate()
+    print 'Base happiness:', p.base_happiness()
+    print 'Base exp:', p.base_exp()
+    print 'Growth rate:', p.growth_rate()
