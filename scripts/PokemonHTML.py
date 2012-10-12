@@ -1,11 +1,8 @@
 from urllib2 import urlopen
 
 from BeautifulSoup import BeautifulSoup
-from HTMLParser import HTMLParser
 
 import re
-
-pokemon_str = u'Pok\xe9mon'
 
 class Pokemon(object):
     '''Grabs information about the Pokemon from various databases.'''
@@ -44,11 +41,17 @@ class Pokemon(object):
         '''Returns a dictionary of the base stats of a pokemon
         Includes the special stat if the pokemon is in gen I'''
         
-        #Grab the table with class base-stats, then grab all the trs in it.
+        # Pokemon with forms that have different stats will have it under 'ctabs_stats_n%d-whatever' % self.num
+        # So you'll have to use regex, split the attributed by the hyphen '-', then set that as the key to the stats dict
+
+        # Should have a way to detect whether the pokemon has multiple stat sets- return two args (bool, and then dict) 
+        # or make all pokemon have a 'normal' form key to 
+
+        # Grab the table with class base-stats, then grab all the trs in it.
         stat_table = self.pokemondb_soup.find('table', attrs={'class':'base-stats'}).tbody.findAll('tr')
         bs = { row.th.string : int(row.td.string) for row in stat_table }
         
-        #if the pokemon was part of Gen I, then it has a special stat too.
+        # If the pokemon was part of Gen I, then it has a special stat too.
         if self.num <= 151:
             #Load psypokes especially for this, 
             psypokes_stat_soup = BeautifulSoup(urlopen('http://www.psypokes.com/dex/psydex/%03d/stats' % self.num))
@@ -61,11 +64,11 @@ class Pokemon(object):
         '''Returns a dictionary of the pokeathlon stats of the pokemon
         Each item in the tuple (the value of the dictionary) represents the min, base, and max stats, respectively.'''
         stats = {}
-        star = '&#x2605;' #Unicode character for the star (used on the site)
-        #Grab table with vitals wide class, and grab rows in it
+        star = '&#x2605;' # Unicode character for the star (used on the site)
+        # Grab table with vitals wide class, and grab rows in it
         stat_table = self.pokemondb_soup.find('table', attrs={'class':'vitals wide'}).tbody.findAll('tr')
         for row in stat_table:
-            #Count the stars in each tag, but the tag is empty then we replace it with the empty string so as not to break the program
+            # Count the stars in each tag, but the tag is empty then we replace it with the empty string so as not to break the program
             min_stat = (row.td.findAll('span', attrs={'class':'pkthln-stars min'})[0].string or "").count(star)
             base_stat = min_stat + (row.td.findAll('span', attrs={'class':'pkthln-stars base'})[0].string or "").count(star)
             max_stat = base_stat + (row.td.findAll('span', attrs={'class':'pkthln-stars max'})[0].string or "").count(star)
@@ -166,7 +169,6 @@ class Pokemon(object):
         return body_styles[body_key]
 
 
-
     #################
     #               #
     # BREEDING DATA #
@@ -235,27 +237,29 @@ class Pokemon(object):
         '''Returns a dictionary containing the Pokedex entries of each game of the Pokemon'''
         #Grab the table with dex entries, which has class flavors
         dex_table = self.pokemondb_soup.find('table', attrs={'class':'flavors'}).tbody.findAll('tr')
-        #For every row in the dex_table, and hen for every game in that row, set the game to the row entry.
-        return { game: row.td.string for row in dex_table for game in row.th.getText(' ').split() }
+        #Eliminate redundancies by having tuple keys, makes it easier to transition into XML
+        return { tuple(row.th.getText(' ').split()) : row.td.string for row in dex_table }
 
-    
     #TODO
     #Movesets- dictionary for each game/generation?
+    #Locations- dictionary for each game with value a list of locations
+    #(and possibly their rarities- 'Uncommon', 'Common', etc. seem to be better than actual figures, easier to find too.)
 
 if __name__ == '__main__':
 
     #We could always just stuff this in a __str__ method
-    p = Pokemon(151)
+    p = Pokemon(81)
     print p.name
     bs = p.base_stats()
     print 'Base stats:', p.base_stats()
     print 'Pokeathlon stats:', p.pokeathlon_stats()
     print 
     
-    dex = p.dex_entry()
+###    dex = p.dex_entry()
     print 'Dex entry:'
-    for k, v in dex.iteritems():
-        print k, ':', repr(v)
+    for k, v in p.dex_entry().iteritems():
+        for game in k:
+            print game, ':', repr(v)
     print 
     
     print 'Species:', p.species()
