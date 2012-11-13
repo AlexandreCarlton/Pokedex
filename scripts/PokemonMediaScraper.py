@@ -2,13 +2,22 @@ from urllib2 import urlopen, HTTPError
 from BeautifulSoup import BeautifulSoup
 
 
+'''
+On second thought, wouldn't it be better to make a bunch of functions,
+where each one takes a game's worth of sprites.
+Would account for form differences.
+Yep. Do that instead.
+'''
+
+#Store by number, or by name?
+
 class PokemonMediaScraper(object):
     '''Scrapes sprites and cries from the web and saves them to
         ../media'''
         
     def __init__(self, num):
         self.num = num
-
+        
     def _save_file(self, url, filename):
         '''Helper function to save files- write a try/catch block once'''
         try:
@@ -26,20 +35,47 @@ class PokemonMediaScraper(object):
         cry_url = 'http://veekun.com/dex/media/pokemon/cries/%d.ogg' % self.num
         cry_name = '../media/cries/%03d.ogg' % self.num
         self._save_file(cry_url, cry_name)
+    
+    def footprint(self):
+        '''Saves Pokemon's footprint in a .png file to ../media/footprints
+        Uses Veekun'''
+        footprint_url = 'http://veekun.com/dex/media/pokemon/footprints/%d.png' % self.num
+        footprint_name = '../media/footprints/%03d.png' % self.num
+        self._save_file(footprint_url, footprint_name)
 
+    def emerald(self):
+        '''Saves animated Emerald sprite to ../media/sprites/emerald
+        Uses Veekun'''
+        #Remember, only gen IV and V have gender-specific sprites
+        if self.num > 386: # FIXME: Take out magic nums.
+            return
+        url = 'http://veekun.com/dex/media/pokemon/main-sprites/emerald/animated/%s%d.gif'
+        file_name = '../media/sprites/emerald/%s/%03d.gif'
+
+        # Grab normal sprite
+        self._save_file(url % ('', self.num), file_name % ('normal', self.num))
+        # Grab shiny sprite
+        self._save_file(url % ('shiny/', self.num), file_name % ('shiny', self.num))
+
+        #FIXME: Castform, Unknown,
 
     def black_and_white_animated(self):
+        #Could also use play.pokemonshowdown.com/sprites/bwani for back sprites too
+
         '''Saves the B&W animated sprites
             both normal and shiny
             both male and (if exists) female 
         to ../media/sprites/black_white/{normal,shiny}
         Female pokemon have a 'f' suffix
         Uses Pokecheck'''
+        #FIXME: Form differences
+        #Castform (351) has hyphens of -snowy, -rainy, -sunny
+        #No shiny differences in these forms.
         url_genders = ['', 'f']
         url_colours = ['i', 's']
         
         base_url = 'http://sprites.pokecheck.org/%s/%03d%s.gif'
-        base_file_name = '../media/sprites/black_white/%s/%03d%s.gif' # FIXME
+        base_file_name = '../media/sprites/black_white/%s/%03d%s.gif' 
         
         for g in url_genders:
             for c in url_colours:
@@ -51,6 +87,7 @@ class PokemonMediaScraper(object):
 if __name__ == '__main__':
     bulbasaur = PokemonMediaScraper(1)
     bulbasaur.cry()
+    bulbasaur.footprint()
     rattata = PokemonMediaScraper(19)
     rattata.black_and_white_animated()
     bulbasaur.black_and_white_animated()
