@@ -9,7 +9,35 @@ Would account for form differences.
 Yep. Do that instead.
 '''
 
-#Store by number, or by name?
+#Final pokemon number in each generation
+GEN_1 = 151 # Mew
+GEN_2 = 251 # Celebi
+GEN_3 = 386 # Deoxys
+GEN_4 = 493 # Arceus
+GEN_5 = 649 # Genesect
+
+
+def _save_file(url, filename):
+    '''Helper function to save files- write a try/catch block once'''
+    try:
+        url_file = urlopen(url).read()
+        with open(filename, 'w') as file:
+            file.write(url_file)
+    except HTTPError, e:
+        print 'Unable to save', filename
+    else:
+        print 'Successfully saved', filename
+
+
+def get_icons():
+    '''Saves all Pokemon icons (the tiny sprites seen in your party or in a PC)
+    to /res/drawable/ (as there are no alternatives to the sprites)
+    Currently saves pngs, hopefully the B&W animated ones will be found.''' 
+    
+    #TODO: Grab Form-specific icons?
+    for i in xrange(1, GEN_5+1):
+        name = '%d.png' % i
+        _save_file('http://veekun.com/dex/media/pokemon/icons/%s' % name, '../res/drawable/%s' % name)
 
 class PokemonMediaScraper(object):
     '''Scrapes sprites and cries from the web and saves them to
@@ -85,9 +113,10 @@ class PokemonMediaScraper(object):
                 self._save_file(url, file_name)
 
 if __name__ == '__main__':
-    bulbasaur = PokemonMediaScraper(1)
-    bulbasaur.cry()
-    bulbasaur.footprint()
-    rattata = PokemonMediaScraper(19)
-    rattata.black_and_white_animated()
-    bulbasaur.black_and_white_animated()
+    get_icons()
+###    bulbasaur = PokemonMediaScraper(1)
+###    bulbasaur.cry()
+###    bulbasaur.footprint()
+###    rattata = PokemonMediaScraper(19)
+###    rattata.black_and_white_animated()
+###    bulbasaur.black_and_white_animated()
