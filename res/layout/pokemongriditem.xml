@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- We use match_parent so that we encapsulate the entire grid -->
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical" >
-    
-    <TextView
-        android:id="@+id/dexnumber"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical" 
+    >
+    
+    <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/dex_number"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
         android:layout_gravity="center"
-        android:textSize="20dp" />
+        android:textSize="25dp" />
     
-    <ImageView
-        android:id="@+id/pokemonicon"
+    <ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/pokemon_icon"
         android:layout_gravity="center"
-        android:layout_width="60dp"
-        android:layout_height="60dp" />
+        android:layout_width="45dp"
+        android:layout_height="45dp" />
+
 </LinearLayout>

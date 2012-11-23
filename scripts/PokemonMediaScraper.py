@@ -37,7 +37,7 @@ def get_icons():
     #TODO: Grab Form-specific icons?
     for i in xrange(1, GEN_5+1):
         name = '%d.png' % i
-        _save_file('http://veekun.com/dex/media/pokemon/icons/%s' % name, '../res/drawable/icons/icon_%s' % name)
+        _save_file('http://veekun.com/dex/media/pokemon/icons/%s' % name, '../res/drawable/icon_%s' % name)
 
 class PokemonMediaScraper(object):
     '''Scrapes sprites and cries from the web and saves them to

@@ -26,13 +26,13 @@ public class PokemonIconAdapter extends BaseAdapter {
 	
 	public PokemonIconAdapter(Context c) {
 		context = c;
-		
 	}
 	
 	/* Displays item at given position */
 	public View getView(int position, View convertView, ViewGroup parent) {
 		View gridView;
 		LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		
 		if (convertView == null) {
 			gridView = new View(context);
 			gridView = inflater.inflate(R.layout.pokemongriditem, null);
@@ -41,27 +41,19 @@ public class PokemonIconAdapter extends BaseAdapter {
 		}
 		/* View recycling - set content of view outside of if/else */
 		
-		TextView textView = (TextView) gridView.findViewById(R.id.dexnumber);
+		/* Set the text */
+		TextView textView = (TextView) gridView.findViewById(R.id.dex_number);
 		textView.setText(String.format("%03d", position+1));
+		
 		/* Set the image */
-		ImageView imageView = (ImageView) gridView.findViewById(R.id.pokemonicon);
-		//imageView.setImageResource(iconIds[position]);
-	
-	    int imageResource = context.getResources().getIdentifier("icon_" + Integer.toString(position+1), "drawable", context.getPackageName());
-	    imageView.setImageResource(imageResource);
+		ImageView imageView = (ImageView) gridView.findViewById(R.id.pokemon_icon);
+		String iconName = "icon_" + Integer.toString(position + 1);
+		int imageResource = context.getResources().getIdentifier(iconName, "drawable", context.getPackageName());
+		imageView.setImageResource(imageResource);
 		
 		return gridView;
     }
 	
-	
-//	public Integer[] getIcons() {
-//		int GEN_5 = 649;
-//		Integer[] iconId = new Integer[GEN_5];
-//		for (int i=0; i<GEN_5; i++){
-//			iconId[i] = getResources().getIdentifier(Integer.toString(i),"drawable","com.carlton.pokedex");
-//		}	
-//		return iconId;
-//	}
 	
 	
 	public int getCount() {

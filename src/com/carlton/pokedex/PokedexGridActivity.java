@@ -21,7 +21,7 @@ public class PokedexGridActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.pokemongridlayout);
    
-        GridView gridview = (GridView) findViewById(R.id.pokedexGrid);
+        GridView gridview = (GridView) findViewById(R.id.pokedex_grid);
         gridview.setAdapter(new PokemonIconAdapter(this));
    
         gridview.setOnItemClickListener(new OnItemClickListener() {
